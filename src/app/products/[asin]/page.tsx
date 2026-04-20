@@ -1,39 +1,51 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getProduct } from '@/lib/store';
+import { translations } from '@/lib/translations';
+import type { Locale } from '@/lib/translations';
 import StarRating from '@/components/StarRating';
 import ProblemsChart from '@/components/ProblemsChart';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useLanguage } from '@/contexts/LanguageContext';
-import type { AnalysisResult } from '@/lib/analyzer';
 
-export default function ResultsPage() {
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const router = useRouter();
-  const { t } = useLanguage();
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    const raw = sessionStorage.getItem('reviewsnap_result');
-    if (!raw) { router.replace('/'); return; }
-    try { setResult(JSON.parse(raw)); } catch { router.replace('/'); }
-  }, [router]);
+interface Props {
+  params: { asin: string };
+}
 
-  if (!result) {
-    return (
-      <div className="min-h-screen bg-[#f7f8fa] flex items-center justify-center">
-        <div className="w-7 h-7 rounded-full border-[3px] border-[#FF9900] border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const product = await getProduct(params.asin);
+  if (!product) return { title: 'Product Not Found | ReviewSnap' };
+
+  const description = product.verdict
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 155);
+
+  return {
+    title: `${product.productName} – ReviewSnap Analysis`,
+    description,
+    openGraph: {
+      title: `${product.productName} – Should you buy it?`,
+      description,
+      images: product.imageUrl ? [{ url: product.imageUrl }] : [],
+    },
+  };
+}
+
+export default async function ProductPage({ params }: Props) {
+  const product = await getProduct(params.asin);
+  if (!product) notFound();
+
+  const locale = (product.locale as Locale) ?? 'en';
+  const t = translations[locale] ?? translations.en;
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] flex flex-col">
-      {/* Top bar */}
+      {/* Header */}
       <header className="bg-[#131921] py-3 px-4 sticky top-0 z-50">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-md bg-[#FF9900] flex items-center justify-center">
               <svg className="w-4 h-4 text-[#131921]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
@@ -41,30 +53,15 @@ export default function ResultsPage() {
             </div>
             <span className="text-white font-bold text-lg tracking-tight">ReviewSnap</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            {result && (
-              <Link
-                href={`/products/${result.asin}`}
-                className="hidden sm:flex items-center gap-1.5 text-[#ccc] hover:text-white transition-colors text-sm"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.656-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.667l3-3z" />
-                  <path d="M11.603 7.963a.75.75 0 00-.977 1.138 2.5 2.5 0 01.142 3.667l-3 3a2.5 2.5 0 01-3.536-3.536l1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 105.656 5.656l3-3a4 4 0 00-.225-5.865z" />
-                </svg>
-                Permalink
-              </Link>
-            )}
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-[#ccc] hover:text-white transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-              {t.newSearch}
-            </Link>
-          </div>
+          <Link
+            href="/products"
+            className="flex items-center gap-1.5 text-[#ccc] hover:text-white transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            All products
+          </Link>
         </div>
       </header>
       <div className="h-[3px] bg-[#FF9900]" />
@@ -74,13 +71,12 @@ export default function ResultsPage() {
         {/* ── Product Hero Card ── */}
         <div className="card overflow-hidden">
           <div className="flex gap-5 p-5">
-            {/* Image */}
             <div className="shrink-0 w-32 h-32 sm:w-44 sm:h-44 rounded-lg border border-[#e3e6ea] bg-white flex items-center justify-center overflow-hidden">
-              {result.imageUrl ? (
+              {product.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={result.imageUrl}
-                  alt={result.productName}
+                  src={product.imageUrl}
+                  alt={product.productName}
                   className="w-full h-full object-contain p-2"
                 />
               ) : (
@@ -92,24 +88,25 @@ export default function ResultsPage() {
               )}
             </div>
 
-            {/* Details */}
             <div className="flex-1 min-w-0 py-1 flex flex-col gap-2">
               <h1 className="text-base sm:text-lg font-semibold text-[#0f1111] leading-snug line-clamp-4">
-                {result.productName}
+                {product.productName}
               </h1>
 
-              <StarRating rating={result.rating} reviewCount={result.reviewCount} ratingsLabel={t.ratings} />
+              <StarRating
+                rating={product.rating}
+                reviewCount={product.reviewCount}
+                ratingsLabel={t.ratings}
+              />
 
-              {result.price && (
-                <div>
-                  <span className="text-2xl font-bold text-[#B12704] tracking-tight">
-                    {result.price}
-                  </span>
-                </div>
+              {product.price && (
+                <span className="text-2xl font-bold text-[#B12704] tracking-tight">
+                  {product.price}
+                </span>
               )}
 
               <a
-                href={result.affiliateUrl}
+                href={product.affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 mt-auto px-5 py-2 rounded text-sm font-semibold bg-gradient-to-b from-[#FFD814] to-[#FF9900] border border-[#c8a216] text-[#111] hover:from-[#f7ca00] hover:to-[#e47911] transition-all shadow-sm w-fit"
@@ -130,16 +127,17 @@ export default function ResultsPage() {
                 <svg className="w-4 h-4 text-[#FF9900]" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
                 </svg>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#FF9900]">{t.aiVerdict}</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#FF9900]">
+                  {t.aiVerdict}
+                </span>
               </div>
-              <p className="text-[#0f1111] leading-relaxed text-sm">{result.verdict}</p>
+              <p className="text-[#0f1111] leading-relaxed text-sm">{product.verdict}</p>
             </div>
           </div>
         </div>
 
         {/* ── Pros & Cons ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Pros */}
           <div className="card overflow-hidden">
             <div className="flex items-stretch">
               <div className="w-1 bg-[#007600] shrink-0" />
@@ -151,7 +149,7 @@ export default function ResultsPage() {
                   <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">{t.pros}</span>
                 </div>
                 <ul className="space-y-2.5">
-                  {result.pros.map((pro, i) => (
+                  {product.pros.map((pro, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-[#e6f3e6] border border-[#b7dfb7] flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-[#007600]" viewBox="0 0 20 20" fill="currentColor">
@@ -166,7 +164,6 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Cons */}
           <div className="card overflow-hidden">
             <div className="flex items-stretch">
               <div className="w-1 bg-[#c40000] shrink-0" />
@@ -178,7 +175,7 @@ export default function ResultsPage() {
                   <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">{t.cons}</span>
                 </div>
                 <ul className="space-y-2.5">
-                  {result.cons.map((con, i) => (
+                  {product.cons.map((con, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-[#fdecea] border border-[#f5b7b1] flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-[#c40000]" viewBox="0 0 20 20" fill="currentColor">
@@ -195,15 +192,17 @@ export default function ResultsPage() {
         </div>
 
         {/* ── Top Reported Problems ── */}
-        {result.problems?.length > 0 && (
+        {product.problems?.length > 0 && (
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-4 h-4 text-[#FF9900]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
               </svg>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#565959]">{t.topProblems}</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#565959]">
+                {t.topProblems}
+              </span>
             </div>
-            <ProblemsChart problems={result.problems} />
+            <ProblemsChart problems={product.problems} />
           </div>
         )}
 
@@ -215,7 +214,7 @@ export default function ResultsPage() {
               <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">{t.goodFor}</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {result.goodFor.map((tag, i) => (
+              {product.goodFor.map((tag, i) => (
                 <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-[#e6f3e6] border border-[#b7dfb7] text-[#007600]">
                   {tag}
                 </span>
@@ -229,7 +228,7 @@ export default function ResultsPage() {
               <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">{t.notGoodFor}</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {result.notGoodFor.map((tag, i) => (
+              {product.notGoodFor.map((tag, i) => (
                 <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-[#fdecea] border border-[#f5b7b1] text-[#c40000]">
                   {tag}
                 </span>
@@ -245,7 +244,7 @@ export default function ResultsPage() {
             <p className="text-sm text-[#565959] mt-0.5">{t.buyDesc}</p>
           </div>
           <a
-            href={result.affiliateUrl}
+            href={product.affiliateUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 flex items-center gap-2.5 px-7 py-3 rounded font-bold text-sm bg-gradient-to-b from-[#FFD814] to-[#FF9900] border border-[#c8a216] text-[#111] hover:from-[#f7ca00] hover:to-[#e47911] transition-all shadow"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeAmazonProduct } from '@/lib/scraper';
 import { analyzeReviews } from '@/lib/analyzer';
+import { saveProduct } from '@/lib/store';
 import type { Locale } from '@/lib/translations';
 
 export const maxDuration = 60;
@@ -32,6 +33,11 @@ export async function POST(req: NextRequest) {
 
     const scraped = await scrapeAmazonProduct(url, locale);
     const analysis = await analyzeReviews(scraped, locale);
+
+    // Persist asynchronously — don't block the response
+    saveProduct(analysis, locale).catch(err =>
+      console.error('[store] Failed to save product:', err)
+    );
 
     return NextResponse.json(analysis);
   } catch (err) {

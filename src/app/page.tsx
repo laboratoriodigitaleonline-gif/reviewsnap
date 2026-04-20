@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -56,6 +57,12 @@ export default function HomePage() {
               </svg>
             </div>
             <span className="text-white font-bold text-xl tracking-tight">ReviewSnap</span>
+            <Link
+              href="/products"
+              className="hidden sm:inline text-sm text-[#ccc] hover:text-white transition-colors ml-2"
+            >
+              Products
+            </Link>
           </div>
           <LanguageSwitcher />
         </div>
