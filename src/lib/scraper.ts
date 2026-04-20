@@ -39,17 +39,33 @@ function directHeaders(acceptLanguage: string): Record<string, string> {
   };
 }
 
-export function extractAsin(url: string): string | null {
+export function extractAsin(rawUrl: string): string | null {
+  // Build a set of candidate strings to search: raw URL, decoded URL,
+  // and any nested URL found in the `url=` query parameter (sspa/sponsored clicks).
+  const candidates: string[] = [rawUrl];
+  try { candidates.push(decodeURIComponent(rawUrl)); } catch {}
+  try {
+    const parsed = new URL(rawUrl);
+    const urlParam = parsed.searchParams.get('url');
+    if (urlParam) {
+      candidates.push(urlParam);
+      try { candidates.push(decodeURIComponent(urlParam)); } catch {}
+    }
+  } catch {}
+
   const patterns = [
-    /\/dp\/([A-Z0-9]{10})/i,
-    /\/gp\/product\/([A-Z0-9]{10})/i,
-    /\/ASIN\/([A-Z0-9]{10})/i,
-    /\/product\/([A-Z0-9]{10})/i,
-    /([A-Z0-9]{10})(?:[/?]|$)/,
+    /\/dp\/([A-Z0-9]{10})(?:[\/\?#]|$)/i,
+    /\/gp\/product\/([A-Z0-9]{10})(?:[\/\?#]|$)/i,
+    /\/ASIN\/([A-Z0-9]{10})(?:[\/\?#]|$)/i,
+    /\/product\/([A-Z0-9]{10})(?:[\/\?#]|$)/i,
+    /([A-Z0-9]{10})(?:[\/\?#]|$)/,
   ];
-  for (const re of patterns) {
-    const m = url.match(re);
-    if (m) return m[1].toUpperCase();
+
+  for (const candidate of candidates) {
+    for (const re of patterns) {
+      const m = candidate.match(re);
+      if (m) return m[1].toUpperCase();
+    }
   }
   return null;
 }
@@ -80,6 +96,14 @@ export async function scrapeAmazonProduct(url: string, locale: Locale = 'en'): P
         'Get a free key (1,000 req/month) at scraperapi.com, ' +
         'then add SCRAPERAPI_KEY=your_key to .env.local and restart the server.'
     );
+  }
+
+  // Resolve amzn.to / amzn.eu short links to their final URL
+  if (/amzn\.(to|eu)\//i.test(url)) {
+    try {
+      const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+      if (res.url) url = res.url;
+    } catch {}
   }
 
   const asin = extractAsin(url);
