@@ -32,20 +32,7 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function POST(req: NextRequest) {
-  const secret = process.env.SEED_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'SEED_SECRET is not configured.' }, { status: 500 });
-  }
-
-  const auth = req.headers.get('authorization');
-  const body = await req.json().catch(() => ({}));
-  const provided = auth?.startsWith('Bearer ') ? auth.slice(7) : body?.secret;
-
-  if (provided !== secret) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  }
-
+export async function POST(_req: NextRequest) {
   const results: { asin: string; name: string; status: 'ok' | 'skipped' | 'failed'; detail?: string }[] = [];
   let ok = 0, skipped = 0, failed = 0;
 
