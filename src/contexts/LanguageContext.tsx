@@ -15,6 +15,12 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 function detectLocale(): Locale {
+  // ?lang=it or ?lang=en overrides everything and is saved to localStorage
+  const param = new URLSearchParams(window.location.search).get('lang');
+  if (param === 'it' || param === 'en') {
+    localStorage.setItem('reviewsnap_locale', param);
+    return param;
+  }
   const saved = localStorage.getItem('reviewsnap_locale') as Locale | null;
   if (saved === 'en' || saved === 'it') return saved;
   const lang = navigator.language || navigator.languages?.[0] || '';
