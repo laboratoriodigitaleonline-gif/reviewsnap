@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getAllProducts } from '@/lib/store';
 import type { StoredProduct } from '@/lib/store';
 import VerdictBadge from '@/components/VerdictBadge';
+import SiteFooter from '@/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -144,9 +145,7 @@ export default async function ProductsPage() {
         )}
       </main>
 
-      <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-4 px-4">
-        © ReviewSnap · Powered by Claude AI
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

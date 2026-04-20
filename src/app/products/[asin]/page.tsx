@@ -7,6 +7,7 @@ import type { Locale } from '@/lib/translations';
 import StarRating from '@/components/StarRating';
 import ProblemsChart from '@/components/ProblemsChart';
 import VerdictBadge from '@/components/VerdictBadge';
+import SiteFooter from '@/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -277,9 +278,7 @@ export default async function ProductPage({ params }: Props) {
         </p>
       </main>
 
-      <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-3 px-4">
-        {t.resultsFooter}
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

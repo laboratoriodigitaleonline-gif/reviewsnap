@@ -7,6 +7,7 @@ import StarRating from '@/components/StarRating';
 import ProblemsChart from '@/components/ProblemsChart';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import VerdictBadge from '@/components/VerdictBadge';
+import SiteFooter from '@/components/SiteFooter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { AnalysisResult } from '@/lib/analyzer';
 
@@ -269,9 +270,7 @@ export default function ResultsPage() {
         </p>
       </main>
 
-      <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-3 px-4">
-        {t.resultsFooter}
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

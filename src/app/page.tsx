@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import SiteFooter from '@/components/SiteFooter';
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
@@ -159,9 +160,7 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-4 px-4">
-        {t.homeFooter}
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
