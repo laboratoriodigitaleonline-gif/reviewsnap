@@ -76,7 +76,7 @@ export default function ResultsPage() {
         <div className="card relative">
           {/* Sticker badge — top-right on all screen sizes */}
           <div className="absolute top-3 right-3 z-10">
-            <VerdictBadge pros={result.pros} cons={result.cons} problems={result.problems} locale={locale} />
+            <VerdictBadge pros={result.pros} cons={result.cons} problems={result.problems} rating={result.rating} locale={locale} />
           </div>
 
           <div className="flex gap-5 p-5 pr-4">

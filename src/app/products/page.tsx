@@ -23,7 +23,7 @@ function ProductCard({ p }: { p: StoredProduct }) {
     >
       {/* Sticker badge */}
       <div className="absolute top-2 right-2 z-10">
-        <VerdictBadge pros={p.pros} cons={p.cons} problems={p.problems} locale={p.locale} size="sm" />
+        <VerdictBadge pros={p.pros} cons={p.cons} problems={p.problems} rating={p.rating} locale={p.locale} size="sm" />
       </div>
 
       {/* Image */}

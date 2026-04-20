@@ -82,7 +82,7 @@ export default async function ProductPage({ params }: Props) {
         <div className="card relative">
           {/* Sticker badge — top-right on all screen sizes */}
           <div className="absolute top-3 right-3 z-10">
-            <VerdictBadge pros={product.pros} cons={product.cons} problems={product.problems} locale={product.locale} />
+            <VerdictBadge pros={product.pros} cons={product.cons} problems={product.problems} rating={product.rating} locale={product.locale} />
           </div>
 
           <div className="flex gap-5 p-5">
