@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StarRating from '@/components/StarRating';
 import ProblemsChart from '@/components/ProblemsChart';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { AnalysisResult } from '@/lib/analyzer';
 
 export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const raw = sessionStorage.getItem('reviewsnap_result');
@@ -38,15 +41,18 @@ export default function ResultsPage() {
             </div>
             <span className="text-white font-bold text-lg tracking-tight">ReviewSnap</span>
           </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-[#ccc] hover:text-white transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            New search
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-[#ccc] hover:text-white transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              {t.newSearch}
+            </Link>
+          </div>
         </div>
       </header>
       <div className="h-[3px] bg-[#FF9900]" />
@@ -80,7 +86,7 @@ export default function ResultsPage() {
                 {result.productName}
               </h1>
 
-              <StarRating rating={result.rating} reviewCount={result.reviewCount} />
+              <StarRating rating={result.rating} reviewCount={result.reviewCount} ratingsLabel={t.ratings} />
 
               {result.price && (
                 <div>
@@ -97,7 +103,7 @@ export default function ResultsPage() {
                 className="inline-flex items-center gap-2 mt-auto px-5 py-2 rounded text-sm font-semibold bg-gradient-to-b from-[#FFD814] to-[#FF9900] border border-[#c8a216] text-[#111] hover:from-[#f7ca00] hover:to-[#e47911] transition-all shadow-sm w-fit"
               >
                 <AmazonIcon />
-                Buy on Amazon
+                {t.buyBtn}
               </a>
             </div>
           </div>
@@ -106,14 +112,13 @@ export default function ResultsPage() {
         {/* ── AI Verdict ── */}
         <div className="card overflow-hidden">
           <div className="flex items-stretch">
-            {/* Orange left accent bar */}
             <div className="w-1 bg-[#FF9900] shrink-0" />
             <div className="p-5 flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <svg className="w-4 h-4 text-[#FF9900]" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
                 </svg>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#FF9900]">AI Verdict</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#FF9900]">{t.aiVerdict}</span>
               </div>
               <p className="text-[#0f1111] leading-relaxed text-sm">{result.verdict}</p>
             </div>
@@ -131,7 +136,7 @@ export default function ResultsPage() {
                   <svg className="w-4 h-4 text-[#007600]" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">Pros</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">{t.pros}</span>
                 </div>
                 <ul className="space-y-2.5">
                   {result.pros.map((pro, i) => (
@@ -158,7 +163,7 @@ export default function ResultsPage() {
                   <svg className="w-4 h-4 text-[#c40000]" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">Cons</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">{t.cons}</span>
                 </div>
                 <ul className="space-y-2.5">
                   {result.cons.map((con, i) => (
@@ -184,7 +189,7 @@ export default function ResultsPage() {
               <svg className="w-4 h-4 text-[#FF9900]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
               </svg>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#565959]">Top Reported Problems</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#565959]">{t.topProblems}</span>
             </div>
             <ProblemsChart problems={result.problems} />
           </div>
@@ -195,7 +200,7 @@ export default function ResultsPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">👍</span>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">Good For</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#007600]">{t.goodFor}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {result.goodFor.map((tag, i) => (
@@ -209,7 +214,7 @@ export default function ResultsPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">👎</span>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">Not Good For</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#c40000]">{t.notGoodFor}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {result.notGoodFor.map((tag, i) => (
@@ -224,8 +229,8 @@ export default function ResultsPage() {
         {/* ── Bottom Buy CTA ── */}
         <div className="card p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-[#FF9900]/40">
           <div>
-            <p className="font-bold text-[#0f1111]">Ready to purchase?</p>
-            <p className="text-sm text-[#565959] mt-0.5">See the latest price and buy securely on Amazon.</p>
+            <p className="font-bold text-[#0f1111]">{t.readyToPurchase}</p>
+            <p className="text-sm text-[#565959] mt-0.5">{t.buyDesc}</p>
           </div>
           <a
             href={result.affiliateUrl}
@@ -234,7 +239,7 @@ export default function ResultsPage() {
             className="shrink-0 flex items-center gap-2.5 px-7 py-3 rounded font-bold text-sm bg-gradient-to-b from-[#FFD814] to-[#FF9900] border border-[#c8a216] text-[#111] hover:from-[#f7ca00] hover:to-[#e47911] transition-all shadow"
           >
             <AmazonIcon />
-            Buy on Amazon
+            {t.buyBtn}
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -242,12 +247,12 @@ export default function ResultsPage() {
         </div>
 
         <p className="text-center text-[#adb1b8] text-xs pb-2">
-          ReviewSnap may earn a commission via affiliate links · Analysis powered by Claude AI
+          {t.affiliateNote}
         </p>
       </main>
 
       <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-3 px-4">
-        © ReviewSnap · Powered by Claude AI
+        {t.resultsFooter}
       </footer>
     </div>
   );

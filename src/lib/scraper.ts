@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import type { Locale } from './translations';
 
 export interface ScrapedData {
   productName: string;
@@ -12,25 +13,31 @@ export interface ScrapedData {
 
 const SCRAPERAPI_KEY = process.env.SCRAPERAPI_KEY;
 
-function proxyUrl(target: string): string {
+const LOCALE_CONFIG: Record<Locale, { domain: string; countryCode: string; acceptLanguage: string }> = {
+  en: { domain: 'amazon.com', countryCode: 'us', acceptLanguage: 'en-US,en;q=0.9' },
+  it: { domain: 'amazon.it',  countryCode: 'it', acceptLanguage: 'it-IT,it;q=0.9' },
+};
+
+function proxyUrl(target: string, countryCode: string): string {
   if (!SCRAPERAPI_KEY) return target;
   return (
     `https://api.scraperapi.com?api_key=${SCRAPERAPI_KEY}` +
-    `&url=${encodeURIComponent(target)}&country_code=us`
+    `&url=${encodeURIComponent(target)}&country_code=${countryCode}`
   );
 }
 
-// Headers used only when ScraperAPI is not configured (direct fetch fallback)
-const DIRECT_HEADERS: Record<string, string> = {
-  'User-Agent':
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-    '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-  Accept:
-    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Cache-Control': 'no-cache',
-  'Upgrade-Insecure-Requests': '1',
-};
+function directHeaders(acceptLanguage: string): Record<string, string> {
+  return {
+    'User-Agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+      '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    Accept:
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': acceptLanguage,
+    'Cache-Control': 'no-cache',
+    'Upgrade-Insecure-Requests': '1',
+  };
+}
 
 export function extractAsin(url: string): string | null {
   const patterns = [
@@ -47,24 +54,26 @@ export function extractAsin(url: string): string | null {
   return null;
 }
 
-async function fetchPage(targetUrl: string): Promise<string> {
-  const fetchUrl = proxyUrl(targetUrl);
-  const headers  = SCRAPERAPI_KEY ? {} : DIRECT_HEADERS;
+async function fetchPage(targetUrl: string, locale: Locale): Promise<string> {
+  const { countryCode, acceptLanguage } = LOCALE_CONFIG[locale];
+  const fetchUrl = proxyUrl(targetUrl, countryCode);
+  const headers  = SCRAPERAPI_KEY ? {} : directHeaders(acceptLanguage);
   const res      = await fetch(fetchUrl, { headers, redirect: 'follow' });
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${targetUrl}`);
   return res.text();
 }
 
 function parseRating(text: string): number {
-  const m = text.match(/(\d+\.?\d*)\s+out\s+of\s+5/i);
-  return m ? parseFloat(m[1]) : 0;
+  // Handles "4.5 out of 5" (EN) and "4,5 su 5" (IT)
+  const m = text.match(/(\d+[.,]?\d*)\s+(?:out\s+of|su)\s+5/i);
+  return m ? parseFloat(m[1].replace(',', '.')) : 0;
 }
 
 function parseReviewCount(text: string): number {
   return parseInt(text.replace(/[^0-9]/g, ''), 10) || 0;
 }
 
-export async function scrapeAmazonProduct(url: string): Promise<ScrapedData> {
+export async function scrapeAmazonProduct(url: string, locale: Locale = 'en'): Promise<ScrapedData> {
   if (!SCRAPERAPI_KEY) {
     throw new Error(
       'Scraping requires a ScraperAPI key. ' +
@@ -80,8 +89,9 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedData> {
 
   // The /product-reviews/ URL is blocked by Amazon for scrapers.
   // The product page (/dp/ASIN) is accessible and includes the top reviews inline.
-  const productUrl = `https://www.amazon.com/dp/${asin}`;
-  const html = await fetchPage(productUrl);
+  const { domain } = LOCALE_CONFIG[locale];
+  const productUrl = `https://www.${domain}/dp/${asin}`;
+  const html = await fetchPage(productUrl, locale);
   const $ = cheerio.load(html);
 
   // Detect bot wall / CAPTCHA
@@ -121,16 +131,46 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedData> {
   // Reviews — the product page embeds the top reviews inline (typically 8)
   const reviews: string[] = [];
 
-  $('[data-hook="review"]').each((_, reviewEl) => {
-    const body = $(reviewEl).find('[data-hook="review-body"]').find('span').not('[class]').first().text().trim();
+  function extractReviewText(reviewEl: ReturnType<typeof $>[0]): string {
+    const $rev = $(reviewEl);
+    // .review-text-content holds the text on both amazon.com and amazon.it
+    const $rtc = $rev.find('.review-text-content');
+    if ($rtc.length) {
+      // Local reviews: unclassed <span> child
+      const plain = $rtc.find('span').not('[class]').first().text().trim();
+      if (plain.length > 0) return plain;
+      // Global/translated reviews: cr-original-review-content span
+      const orig = $rtc.find('.cr-original-review-content').text().trim();
+      if (orig.length > 0) return orig;
+      // Last resort within rtc: strip UI chrome and return raw text
+      const clone = $rtc.clone();
+      clone.find('.a-expander-prompt, .a-expander-header, script').remove();
+      const raw = clone.text().trim();
+      if (raw.length > 0) return raw;
+    }
+    // amazon.com fallback: unclassed span directly inside review-body
+    return $rev.find('[data-hook="review-body"]').find('span').not('[class]').first().text().trim();
+  }
+
+  // ① Local-language reviews (amazon.it: #cm-cr-dp-review-list; amazon.com: same list)
+  $('#cm-cr-dp-review-list [data-hook="review"]').each((_, el) => {
+    const body = extractReviewText(el);
     if (body.length > 40) reviews.push(body);
   });
 
-  // Fallback: grab any review-body spans if the above found nothing
+  // ② Fall back to every review on the page (covers amazon.com layout and edge cases)
+  if (reviews.length === 0) {
+    $('[data-hook="review"]').each((_, el) => {
+      const body = extractReviewText(el);
+      if (body.length > 40) reviews.push(body);
+    });
+  }
+
+  // ③ Last resort: walk review-body elements directly
   if (reviews.length === 0) {
     $('[data-hook="review-body"]').each((_, el) => {
-      const text = $(el).find('span').first().text().trim();
-      if (text.length > 40) reviews.push(text);
+      const body = extractReviewText(el);
+      if (body.length > 40) reviews.push(body);
     });
   }
 

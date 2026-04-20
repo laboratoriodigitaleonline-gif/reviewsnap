@@ -1,9 +1,10 @@
 interface StarRatingProps {
   rating: number;
   reviewCount?: number;
+  ratingsLabel?: string;
 }
 
-export default function StarRating({ rating, reviewCount }: StarRatingProps) {
+export default function StarRating({ rating, reviewCount, ratingsLabel = 'ratings' }: StarRatingProps) {
   const full  = Math.floor(rating);
   const half  = rating % 1 >= 0.5;
   const empty = 5 - full - (half ? 1 : 0);
@@ -17,7 +18,7 @@ export default function StarRating({ rating, reviewCount }: StarRatingProps) {
       </div>
       <span className="text-sm font-semibold text-[#FF9900]">{rating > 0 ? rating.toFixed(1) : '—'}</span>
       {reviewCount != null && reviewCount > 0 && (
-        <span className="text-sm text-[#007185]">{reviewCount.toLocaleString()} ratings</span>
+        <span className="text-sm text-[#007185]">{reviewCount.toLocaleString()} {ratingsLabel}</span>
       )}
     </div>
   );

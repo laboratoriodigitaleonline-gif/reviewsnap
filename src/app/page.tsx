@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const STEPS = ['Fetching Amazon page…', 'Extracting reviews…', 'Analyzing with Claude AI…'];
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
@@ -11,6 +11,9 @@ export default function HomePage() {
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { t, locale } = useLanguage();
+
+  const STEPS = [t.stepFetching, t.stepExtracting, t.stepAnalyzing];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,21 +24,20 @@ export default function HomePage() {
     setError('');
     setStep(0);
 
-    // Animate through steps while waiting
     const interval = setInterval(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 4000);
 
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmed }),
+        body: JSON.stringify({ url: trimmed, locale }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed. Please try again.');
+      if (!res.ok) throw new Error(data.error || t.somethingWrong);
       sessionStorage.setItem('reviewsnap_result', JSON.stringify(data));
       router.push('/results');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t.somethingWrong);
     } finally {
       clearInterval(interval);
       setLoading(false);
@@ -46,13 +48,16 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#f7f8fa] flex flex-col">
       {/* Top bar */}
       <header className="bg-[#131921] py-3 px-6">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#FF9900] flex items-center justify-center">
-            <svg className="w-5 h-5 text-[#131921]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
-            </svg>
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FF9900] flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#131921]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
+              </svg>
+            </div>
+            <span className="text-white font-bold text-xl tracking-tight">ReviewSnap</span>
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">ReviewSnap</span>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -65,26 +70,24 @@ export default function HomePage() {
           {/* Heading */}
           <div className="text-center mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold text-[#0f1111] mb-3 leading-tight">
-              Should you buy it?<br />
-              <span className="text-[#FF9900]">Let AI read the reviews for you.</span>
+              {t.heroHeading}<br />
+              <span className="text-[#FF9900]">{t.heroHighlight}</span>
             </h1>
-            <p className="text-[#565959] text-base">
-              Paste any Amazon product link and get an instant AI-powered verdict — pros, cons, common issues, and more.
-            </p>
+            <p className="text-[#565959] text-base">{t.heroSub}</p>
           </div>
 
           {/* Search card */}
           <div className="card p-6">
             <form onSubmit={handleSubmit} className="space-y-3">
               <label className="block text-sm font-semibold text-[#0f1111]">
-                Amazon Product URL
+                {t.urlLabel}
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={url}
                   onChange={e => setUrl(e.target.value)}
-                  placeholder="https://www.amazon.com/dp/..."
+                  placeholder={t.urlPlaceholder}
                   disabled={loading}
                   className="flex-1 px-4 py-2.5 rounded border border-[#a6a6a6] bg-white text-[#0f1111] placeholder-[#adb1b8] text-sm focus:outline-none focus:border-[#e77600] focus:ring-2 focus:ring-[#e77600]/20 disabled:opacity-60 shadow-sm"
                 />
@@ -99,10 +102,10 @@ export default function HomePage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
-                      Analyzing…
+                      {t.analyzingBtn}
                     </span>
                   ) : (
-                    'Analyze Reviews'
+                    t.analyzeBtn
                   )}
                 </button>
               </div>
@@ -133,10 +136,10 @@ export default function HomePage() {
           {/* Features */}
           <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: '⚡', label: 'Instant verdict', desc: 'Results in ~30s' },
-              { icon: '✓', label: 'Pros & cons', desc: 'Clear breakdown' },
-              { icon: '⚠', label: 'Known issues', desc: 'With frequency' },
-              { icon: '🎯', label: 'Buyer fit', desc: 'Who it suits' },
+              { icon: '⚡', label: t.feat1Label, desc: t.feat1Desc },
+              { icon: '✓',  label: t.feat2Label, desc: t.feat2Desc },
+              { icon: '⚠',  label: t.feat3Label, desc: t.feat3Desc },
+              { icon: '🎯', label: t.feat4Label, desc: t.feat4Desc },
             ].map(f => (
               <div key={f.label} className="card p-3 text-center">
                 <div className="text-xl mb-1">{f.icon}</div>
@@ -150,7 +153,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="bg-[#232f3e] text-[#ddd] text-xs text-center py-4 px-4">
-        ReviewSnap uses Claude AI · Results are for informational purposes only · May earn affiliate commission
+        {t.homeFooter}
       </footer>
     </div>
   );
