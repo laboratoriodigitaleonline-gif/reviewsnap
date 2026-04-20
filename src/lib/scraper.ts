@@ -123,10 +123,36 @@ export async function scrapeAmazonProduct(url: string, locale: Locale = 'en'): P
     throw new Error('Invalid Amazon URL — could not extract a product ID (ASIN).');
   }
 
+  const MAX_ATTEMPTS = 3;
+  const RETRY_DELAY_MS = 2000;
+
   // The /product-reviews/ URL is blocked by Amazon for scrapers.
   // The product page (/dp/ASIN) is accessible and includes the top reviews inline.
   const { domain } = LOCALE_CONFIG[locale];
   const productUrl = `https://www.${domain}/dp/${asin}`;
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    if (attempt > 1) {
+      console.log(`[scraper] retry attempt=${attempt} asin=${asin} delay=${RETRY_DELAY_MS}ms`);
+      await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+    }
+
+    try {
+      const result = await attemptScrape(productUrl, asin, locale);
+      if (attempt > 1) console.log(`[scraper] retry succeeded attempt=${attempt} asin=${asin}`);
+      return result;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.log(`[scraper] attempt=${attempt} failed asin=${asin} error=${lastError.message}`);
+    }
+  }
+
+  throw lastError!;
+}
+
+async function attemptScrape(productUrl: string, asin: string, locale: Locale): Promise<ScrapedData> {
   const html = await fetchPage(productUrl, locale);
   const $ = cheerio.load(html);
 
