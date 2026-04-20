@@ -30,6 +30,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       images: product.imageUrl ? [{ url: product.imageUrl }] : [],
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.productName} – Should you buy it?`,
+      description,
+      images: product.imageUrl ? [product.imageUrl] : [],
+    },
+    alternates: {
+      canonical: `https://reviewsnap.net/products/${product.asin}`,
+    },
   };
 }
 
