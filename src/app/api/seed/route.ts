@@ -14,7 +14,6 @@ const PRODUCTS = [
   { name: 'Fire TV Stick 4K Max',               asin: 'B0BP9SNVH9', category: 'Electronics' },
   { name: 'Anker 27000mAh Power Bank',          asin: 'B07S829LBX', category: 'Electronics' },
   { name: 'Instant Pot Duo 7-in-1 6qt',         asin: 'B00FLYWNYQ', category: 'Home'        },
-  { name: 'iRobot Roomba i4+ Robot Vacuum',     asin: 'B08C4HN7MF', category: 'Home'        },
   { name: 'Philips Hue White & Color Starter',  asin: 'B014H2P42K', category: 'Home'        },
   { name: 'Ninja AF101 Air Fryer 4qt',          asin: 'B07FDJMC9Q', category: 'Kitchen'     },
   { name: 'KitchenAid Artisan Stand Mixer 5qt', asin: 'B00005UP2P', category: 'Kitchen'     },
@@ -29,7 +28,8 @@ const PRODUCTS = [
 ];
 
 // Processes one product per call — stays within Vercel's 60s limit.
-// Call repeatedly until remaining === 0.
+// On failure, saves a stub so the product is skipped on subsequent calls.
+// Call repeatedly until done === true.
 export async function POST(_req: NextRequest) {
   const next = await (async () => {
     for (const p of PRODUCTS) {
@@ -42,38 +42,41 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ done: true, remaining: 0, total: PRODUCTS.length });
   }
 
-  const remaining = await (async () => {
-    let count = 0;
-    for (const p of PRODUCTS) {
-      if (!(await getProduct(p.asin))) count++;
-    }
-    return count;
-  })();
-
   const { asin, name } = next;
   try {
     const scraped = await scrapeAmazonProduct(`https://www.amazon.com/dp/${asin}`, 'en');
     const analysis = await analyzeReviews(scraped, 'en');
     await saveProduct(analysis, 'en');
-    return NextResponse.json({
-      done: false,
-      status: 'ok',
-      asin,
-      name,
-      verdict: analysis.verdict.slice(0, 100),
-      remaining: remaining - 1,
-      total: PRODUCTS.length,
-    });
+
+    const remaining = await countRemaining();
+    return NextResponse.json({ done: remaining === 0, status: 'ok', asin, name, verdict: analysis.verdict.slice(0, 100), remaining, total: PRODUCTS.length });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({
-      done: false,
-      status: 'failed',
+    // Save a stub so this ASIN is skipped on the next call
+    await saveProduct({
       asin,
       name,
-      detail,
-      remaining: remaining - 1,
-      total: PRODUCTS.length,
-    });
+      category: next.category,
+      price: '',
+      rating: 0,
+      reviewCount: 0,
+      imageUrl: '',
+      pros: [],
+      cons: [],
+      verdict: `[seed failed: ${detail.slice(0, 120)}]`,
+      affiliateUrl: '',
+      reviewSummary: '',
+    } as any, 'en').catch(() => {});
+
+    const remaining = await countRemaining();
+    return NextResponse.json({ done: remaining === 0, status: 'failed', asin, name, detail, remaining, total: PRODUCTS.length });
   }
+}
+
+async function countRemaining(): Promise<number> {
+  let count = 0;
+  for (const p of PRODUCTS) {
+    if (!(await getProduct(p.asin))) count++;
+  }
+  return count;
 }
