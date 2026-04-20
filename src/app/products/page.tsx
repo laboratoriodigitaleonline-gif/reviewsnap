@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAllProducts } from '@/lib/store';
 import type { StoredProduct } from '@/lib/store';
+import VerdictBadge from '@/components/VerdictBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +62,8 @@ function ProductCard({ p }: { p: StoredProduct }) {
             <span className="text-xs font-semibold text-[#FF9900]">{p.rating.toFixed(1)}</span>
           )}
         </div>
+
+        <VerdictBadge pros={p.pros} cons={p.cons} problems={p.problems} locale={p.locale} size="sm" />
 
         {p.price && (
           <span className="text-base font-bold text-[#B12704]">{p.price}</span>
