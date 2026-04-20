@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const url: string = body?.url?.trim();
-    const locale: Locale = body?.locale === 'it' ? 'it' : 'en';
+    const locale: Locale =
+      body?.locale === 'it' || url.includes('amazon.it') ? 'it' : 'en';
 
     if (!url) {
       return NextResponse.json({ error: 'A URL is required.' }, { status: 400 });
