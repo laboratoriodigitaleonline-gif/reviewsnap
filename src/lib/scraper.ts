@@ -75,9 +75,20 @@ async function fetchPage(targetUrl: string, locale: Locale): Promise<string> {
   const { countryCode, acceptLanguage } = LOCALE_CONFIG[locale];
   const fetchUrl = proxyUrl(targetUrl, countryCode);
   const headers  = SCRAPERAPI_KEY ? {} : directHeaders(acceptLanguage);
-  const res      = await fetch(fetchUrl, { headers, redirect: 'follow' });
+
+  console.log(`[scraper] fetching url=${targetUrl} locale=${locale} country=${countryCode} via_proxy=${!!SCRAPERAPI_KEY}`);
+
+  const res = await fetch(fetchUrl, { headers, redirect: 'follow' });
+
+  console.log(`[scraper] response status=${res.status} ok=${res.ok} final_url=${res.url}`);
+
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${targetUrl}`);
-  return res.text();
+
+  const html = await res.text();
+
+  console.log(`[scraper] html_length=${html.length} html_preview=${html.slice(0, 500).replace(/\s+/g, ' ')}`);
+
+  return html;
 }
 
 function parseRating(text: string): number {
@@ -121,6 +132,8 @@ export async function scrapeAmazonProduct(url: string, locale: Locale = 'en'): P
 
   // Detect bot wall / CAPTCHA
   const title = $('title').text().toLowerCase();
+  console.log(`[scraper] page_title="${$('title').text().trim()}"`);
+
   if (
     html.includes('Type the characters you see in this image') ||
     html.includes('Enter the characters you see below') ||
@@ -178,25 +191,34 @@ export async function scrapeAmazonProduct(url: string, locale: Locale = 'en'): P
   }
 
   // ① Local-language reviews (amazon.it: #cm-cr-dp-review-list; amazon.com: same list)
+  const sel1count = $('#cm-cr-dp-review-list [data-hook="review"]').length;
+  console.log(`[scraper] selector① #cm-cr-dp-review-list [data-hook="review"] count=${sel1count}`);
   $('#cm-cr-dp-review-list [data-hook="review"]').each((_, el) => {
     const body = extractReviewText(el);
     if (body.length > 40) reviews.push(body);
   });
+  console.log(`[scraper] selector① extracted=${reviews.length}`);
 
   // ② Fall back to every review on the page (covers amazon.com layout and edge cases)
   if (reviews.length === 0) {
+    const sel2count = $('[data-hook="review"]').length;
+    console.log(`[scraper] selector② [data-hook="review"] count=${sel2count}`);
     $('[data-hook="review"]').each((_, el) => {
       const body = extractReviewText(el);
       if (body.length > 40) reviews.push(body);
     });
+    console.log(`[scraper] selector② extracted=${reviews.length}`);
   }
 
   // ③ Last resort: walk review-body elements directly
   if (reviews.length === 0) {
+    const sel3count = $('[data-hook="review-body"]').length;
+    console.log(`[scraper] selector③ [data-hook="review-body"] count=${sel3count}`);
     $('[data-hook="review-body"]').each((_, el) => {
       const body = extractReviewText(el);
       if (body.length > 40) reviews.push(body);
     });
+    console.log(`[scraper] selector③ extracted=${reviews.length}`);
   }
 
   if (reviews.length === 0) {

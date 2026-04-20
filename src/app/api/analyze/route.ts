@@ -34,10 +34,16 @@ export async function POST(req: NextRequest) {
     const scraped = await scrapeAmazonProduct(url, locale);
     const analysis = await analyzeReviews(scraped, locale);
 
-    // Persist asynchronously — don't block the response
-    saveProduct(analysis, locale).catch(err =>
-      console.error('[store] Failed to save product:', err)
-    );
+    // Await the save — fire-and-forget is unsafe on Vercel serverless because
+    // the function exits immediately after the response is returned, killing
+    // any pending promises before they resolve.
+    try {
+      console.log('[store] saving product asin=%s kv_configured=%s', analysis.asin, !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN));
+      await saveProduct(analysis, locale);
+      console.log('[store] saved ok asin=%s', analysis.asin);
+    } catch (err) {
+      console.error('[store] save failed asin=%s error=%s', analysis.asin, err instanceof Error ? err.message : String(err));
+    }
 
     return NextResponse.json(analysis);
   } catch (err) {
