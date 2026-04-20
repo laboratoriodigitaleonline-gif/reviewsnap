@@ -19,8 +19,13 @@ function ProductCard({ p }: { p: StoredProduct }) {
   return (
     <Link
       href={`/products/${p.asin}`}
-      className="card overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
+      className="card relative overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
     >
+      {/* Sticker badge */}
+      <div className="absolute top-2 right-2 z-10">
+        <VerdictBadge pros={p.pros} cons={p.cons} problems={p.problems} locale={p.locale} size="sm" />
+      </div>
+
       {/* Image */}
       <div className="w-full h-40 bg-white border-b border-[#e3e6ea] flex items-center justify-center overflow-hidden">
         {p.imageUrl ? (
@@ -62,8 +67,6 @@ function ProductCard({ p }: { p: StoredProduct }) {
             <span className="text-xs font-semibold text-[#FF9900]">{p.rating.toFixed(1)}</span>
           )}
         </div>
-
-        <VerdictBadge pros={p.pros} cons={p.cons} problems={p.problems} locale={p.locale} size="sm" />
 
         {p.price && (
           <span className="text-base font-bold text-[#B12704]">{p.price}</span>

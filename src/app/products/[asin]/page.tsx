@@ -79,33 +79,31 @@ export default async function ProductPage({ params }: Props) {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6 space-y-4">
 
         {/* ── Product Hero Card ── */}
-        <div className="card overflow-hidden">
+        <div className="card relative">
+          {/* Sticker badge — top-right on all screen sizes */}
+          <div className="absolute top-3 right-3 z-10">
+            <VerdictBadge pros={product.pros} cons={product.cons} problems={product.problems} locale={product.locale} />
+          </div>
+
           <div className="flex gap-5 p-5">
-            {/* Image + mobile badge */}
-            <div className="shrink-0 flex flex-col items-center gap-3">
-              <div className="w-32 h-32 sm:w-44 sm:h-44 rounded-lg border border-[#e3e6ea] bg-white flex items-center justify-center overflow-hidden">
-                {product.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={product.imageUrl}
-                    alt={product.productName}
-                    className="w-full h-full object-contain p-2"
-                  />
-                ) : (
-                  <svg className="w-12 h-12 text-[#ccc]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="M21 15l-5-5L5 21" />
-                  </svg>
-                )}
-              </div>
-              {/* Badge below image on mobile */}
-              <div className="sm:hidden">
-                <VerdictBadge pros={product.pros} cons={product.cons} problems={product.problems} locale={product.locale} />
-              </div>
+            <div className="shrink-0 w-32 h-32 sm:w-44 sm:h-44 rounded-lg border border-[#e3e6ea] bg-white flex items-center justify-center overflow-hidden">
+              {product.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.imageUrl}
+                  alt={product.productName}
+                  className="w-full h-full object-contain p-2"
+                />
+              ) : (
+                <svg className="w-12 h-12 text-[#ccc]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+              )}
             </div>
 
-            <div className="flex-1 min-w-0 py-1 flex flex-col gap-2">
+            <div className="flex-1 min-w-0 py-1 flex flex-col gap-2 pr-24">
               <h1 className="text-base sm:text-lg font-semibold text-[#0f1111] leading-snug line-clamp-4">
                 {product.productName}
               </h1>
@@ -131,11 +129,6 @@ export default async function ProductPage({ params }: Props) {
                 <AmazonIcon />
                 {t.buyBtn}
               </a>
-            </div>
-
-            {/* Badge on the right — desktop only */}
-            <div className="hidden sm:flex items-center">
-              <VerdictBadge pros={product.pros} cons={product.cons} problems={product.problems} locale={product.locale} />
             </div>
           </div>
         </div>
