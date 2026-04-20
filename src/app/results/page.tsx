@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StarRating from '@/components/StarRating';
 import ProblemsChart from '@/components/ProblemsChart';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import VerdictBadge from '@/components/VerdictBadge';
 import SiteFooter from '@/components/SiteFooter';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -44,7 +43,6 @@ export default function ResultsPage() {
             <span className="text-white font-bold text-lg tracking-tight">ReviewSnap</span>
           </Link>
           <div className="flex items-center gap-3">
-            <LanguageSwitcher />
             {result && (
               <Link
                 href={`/products/${result.asin}`}

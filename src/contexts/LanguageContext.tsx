@@ -7,13 +7,11 @@ import type { Locale, T } from '@/lib/translations';
 interface LanguageContextType {
   locale: Locale;
   t: T;
-  setLocale: (l: Locale) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   locale: 'en',
   t: translations.en,
-  setLocale: () => {},
 });
 
 function detectLocale(): Locale {
@@ -28,18 +26,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const detected = detectLocale();
+    localStorage.setItem('reviewsnap_locale', detected);
     setLocaleState(detected);
     document.documentElement.lang = detected;
   }, []);
 
-  const setLocale = (l: Locale) => {
-    localStorage.setItem('reviewsnap_locale', l);
-    setLocaleState(l);
-    document.documentElement.lang = l;
-  };
-
   return (
-    <LanguageContext.Provider value={{ locale, t: translations[locale], setLocale }}>
+    <LanguageContext.Provider value={{ locale, t: translations[locale] }}>
       {children}
     </LanguageContext.Provider>
   );

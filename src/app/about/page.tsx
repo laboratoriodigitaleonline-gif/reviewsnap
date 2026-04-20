@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SiteFooter from '@/components/SiteFooter';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const content = {
   en: {
@@ -64,7 +63,6 @@ export default function AboutPage() {
             </div>
             <span className="text-white font-bold text-lg tracking-tight">ReviewSnap</span>
           </Link>
-          <LanguageSwitcher />
         </div>
       </header>
       <div className="h-[3px] bg-[#FF9900]" />

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SiteFooter from '@/components/SiteFooter';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const UPDATED = 'April 2026';
 const UPDATED_IT = 'Aprile 2026';
@@ -68,7 +67,6 @@ export default function DisclaimerPage() {
             </div>
             <span className="text-white font-bold text-lg tracking-tight">ReviewSnap</span>
           </Link>
-          <LanguageSwitcher />
         </div>
       </header>
       <div className="h-[3px] bg-[#FF9900]" />

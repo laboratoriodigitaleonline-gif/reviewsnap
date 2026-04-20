@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SiteFooter from '@/components/SiteFooter';
 
 export default function HomePage() {
@@ -65,7 +64,6 @@ export default function HomePage() {
               Products
             </Link>
           </div>
-          <LanguageSwitcher />
         </div>
       </header>
 
