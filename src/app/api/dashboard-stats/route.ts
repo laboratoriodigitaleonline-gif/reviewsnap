@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAllProducts } from '@/lib/store';
+import { isValidSession } from '@/lib/dashboard-auth';
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  if (searchParams.get('key') !== 'reviewsnap-dashboard-2025') {
+  const cookie = req.headers.get('cookie');
+  if (!isValidSession(cookie)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,10 +19,5 @@ export async function GET(req: Request) {
     savedAt: p.savedAt,
   }));
 
-  return NextResponse.json({
-    total: products.length,
-    itCount,
-    enCount,
-    recent,
-  });
+  return NextResponse.json({ total: products.length, itCount, enCount, recent });
 }
