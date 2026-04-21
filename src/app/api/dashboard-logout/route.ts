@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cookieOptions } from '@/lib/dashboard-auth';
+import { COOKIE_NAME } from '@/lib/dashboard-auth';
 
 export async function POST() {
   const res = NextResponse.json({ ok: true });
-  res.headers.set('Set-Cookie', cookieOptions('', 0));
+  res.cookies.set(COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
   return res;
 }
