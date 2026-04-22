@@ -13,7 +13,7 @@ import type { AnalysisResult } from '@/lib/analyzer';
 export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const router = useRouter();
-  const { t, locale } = useLanguage();
+  const { t, locale, setLocale } = useLanguage();
 
   useEffect(() => {
     const raw = sessionStorage.getItem('reviewsnap_result');
@@ -64,6 +64,21 @@ export default function ResultsPage() {
               </svg>
               {t.newSearch}
             </Link>
+            <div className="flex items-center gap-1 ml-1">
+              {(['it', 'en'] as const).map(l => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                    locale === l
+                      ? 'bg-[#FF9900] text-[#131921]'
+                      : 'text-[#ccc] hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>

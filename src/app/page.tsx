@@ -1,28 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SiteFooter from '@/components/SiteFooter';
+
+function isBotDetectionError(msg: string): boolean {
+  return (
+    msg.includes('bot-detection') ||
+    msg.includes('bot detection') ||
+    msg.includes('ScraperAPI was unable to bypass') ||
+    msg.includes('Amazon returned a bot')
+  );
+}
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
+  const [botError, setBotError] = useState(false);
+  const [retryCountdown, setRetryCountdown] = useState(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
-  const { t, locale } = useLanguage();
+  const { t, locale, setLocale } = useLanguage();
 
   const STEPS = [t.stepFetching, t.stepExtracting, t.stepAnalyzing];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = url.trim();
-    if (!trimmed) return;
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
 
+  const runAnalysis = async (trimmed: string) => {
     setLoading(true);
     setError('');
+    setBotError(false);
+    setRetryCountdown(0);
     setStep(0);
 
     const interval = setInterval(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 4000);
@@ -38,11 +56,45 @@ export default function HomePage() {
       sessionStorage.setItem('reviewsnap_result', JSON.stringify(data));
       router.push('/results');
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.somethingWrong);
+      const msg = err instanceof Error ? err.message : t.somethingWrong;
+      if (isBotDetectionError(msg)) {
+        setBotError(true);
+        setRetryCountdown(3);
+        let remaining = 3;
+        countdownIntervalRef.current = setInterval(() => {
+          remaining -= 1;
+          setRetryCountdown(remaining);
+          if (remaining <= 0) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+          }
+        }, 1000);
+        retryTimerRef.current = setTimeout(() => {
+          runAnalysis(trimmed);
+        }, 3000);
+      } else {
+        setError(msg);
+      }
     } finally {
       clearInterval(interval);
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    await runAnalysis(trimmed);
+  };
+
+  const handleManualRetry = () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    runAnalysis(trimmed);
   };
 
   return (
@@ -63,6 +115,21 @@ export default function HomePage() {
             >
               Products
             </Link>
+          </div>
+          <div className="flex items-center gap-1">
+            {(['it', 'en'] as const).map(l => (
+              <button
+                key={l}
+                onClick={() => setLocale(l)}
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                  locale === l
+                    ? 'bg-[#FF9900] text-[#131921]'
+                    : 'text-[#ccc] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
       </header>
@@ -117,13 +184,45 @@ export default function HomePage() {
               </div>
 
               {/* Loading steps */}
-              {loading && (
+              {loading && !botError && (
                 <div className="flex items-center gap-2 pt-1">
                   <svg className="animate-spin w-3.5 h-3.5 text-[#FF9900] shrink-0" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
                   <span className="text-sm text-[#565959]">{STEPS[step]}</span>
+                </div>
+              )}
+
+              {/* Bot-detection spinner during auto-retry */}
+              {botError && loading && (
+                <div className="flex items-center gap-2 pt-1">
+                  <svg className="animate-spin w-3.5 h-3.5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span className="text-sm text-amber-700">Nuovo tentativo in corso… / Retrying…</span>
+                </div>
+              )}
+
+              {/* Bot-detection friendly retry */}
+              {botError && !loading && (
+                <div className="flex flex-col items-center gap-3 bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-800">
+                  <div className="text-center space-y-0.5">
+                    <p className="font-semibold">Amazon è momentaneamente occupato 🔄</p>
+                    <p className="text-amber-700">Riprova tra qualche secondo</p>
+                    <p className="text-amber-600 text-xs mt-1">Amazon is temporarily busy 🔄 — Please try again in a moment</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleManualRetry}
+                    className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold bg-gradient-to-b from-[#f7dfa5] to-[#f0c14b] border border-[#a88734] text-[#111] hover:from-[#f5d78e] hover:to-[#eeb933] transition-all shadow-sm active:shadow-inner"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {retryCountdown > 0 ? `Riprova (${retryCountdown}s)` : 'Riprova'}
+                  </button>
                 </div>
               )}
 

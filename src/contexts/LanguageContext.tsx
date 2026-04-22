@@ -7,38 +7,33 @@ import type { Locale, T } from '@/lib/translations';
 interface LanguageContextType {
   locale: Locale;
   t: T;
+  setLocale: (l: Locale) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   locale: 'en',
   t: translations.en,
+  setLocale: () => {},
 });
-
-function detectLocale(): Locale {
-  // ?lang=it or ?lang=en overrides everything and is saved to localStorage
-  const param = new URLSearchParams(window.location.search).get('lang');
-  if (param === 'it' || param === 'en') {
-    localStorage.setItem('reviewsnap_locale', param);
-    return param;
-  }
-  const saved = localStorage.getItem('reviewsnap_locale') as Locale | null;
-  if (saved === 'en' || saved === 'it') return saved;
-  const lang = navigator.language || navigator.languages?.[0] || '';
-  return lang.toLowerCase().startsWith('it') ? 'it' : 'en';
-}
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('en');
 
   useEffect(() => {
-    const detected = detectLocale();
-    localStorage.setItem('reviewsnap_locale', detected);
-    setLocaleState(detected);
-    document.documentElement.lang = detected;
+    const saved = localStorage.getItem('reviewsnap_locale') as Locale | null;
+    const initial = saved === 'it' ? 'it' : 'en';
+    setLocaleState(initial);
+    document.documentElement.lang = initial;
   }, []);
 
+  const setLocale = (l: Locale) => {
+    localStorage.setItem('reviewsnap_locale', l);
+    setLocaleState(l);
+    document.documentElement.lang = l;
+  };
+
   return (
-    <LanguageContext.Provider value={{ locale, t: translations[locale] }}>
+    <LanguageContext.Provider value={{ locale, t: translations[locale], setLocale }}>
       {children}
     </LanguageContext.Provider>
   );
